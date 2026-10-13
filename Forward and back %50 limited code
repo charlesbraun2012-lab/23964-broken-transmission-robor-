@@ -1,0 +1,71 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+
+@TeleOp(name = "Basic Tank Drive", group = "Linear Opmode")
+public class TankDrive extends LinearOpMode {
+
+    // Define motor variables
+    private DcMotor leftFront = null;
+    private DcMotor leftBack = null;
+    private DcMotor rightFront = null;
+    private DcMotor rightBack = null;
+
+    @Override
+    public void runOpMode() {
+
+        // Initialize the hardware variables using your configuration names
+        leftFront  = hardwareMap.get(DcMotor.class, "LM");
+        leftBack   = hardwareMap.get(DcMotor.class, "RM");
+        rightFront = hardwareMap.get(DcMotor.class, "Shooter");
+        rightBack  = hardwareMap.get(DcMotor.class, "Intake");
+
+        // Set zero power behavior to BRAKE so the robot stops immediately
+        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // Wait for the game to start (driver presses PLAY)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+        waitForStart();
+
+        // Run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+
+            double leftPower;
+            double rightPower;
+
+            // 1. Get raw joystick values (negated for correct forward direction)
+            double rawLeft  = -gamepad1.left_stick_y;
+            double rawRight = -gamepad1.right_stick_y;
+
+            // 2. Apply 10% deadband threshold and cap max power at 50% (* 0.5)
+            if (Math.abs(rawLeft) < 0.10) {
+                leftPower = 0.0;
+            } else {
+                leftPower = rawLeft * 0.5;
+            }
+
+            if (Math.abs(rawRight) < 0.10) {
+                rightPower = 0.0;
+            } else {
+                rightPower = rawRight * 0.5;
+            }
+
+            // 3. Send the limited power to your motors
+            leftFront.setPower(leftPower);
+            leftBack.setPower(leftPower);
+            rightFront.setPower(rightPower);
+            rightBack.setPower(rightPower);
+
+            // 4. Show the wheel power values on the driver station
+            telemetry.addData("Limited Left Power", leftPower);
+            telemetry.addData("Limited Right Power", rightPower);
+            telemetry.update();
+        }
+    }
+}
