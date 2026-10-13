@@ -1,0 +1,81 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+
+@TeleOp(name = "Basic Arcade Drive", group = "Linear Opmode")
+public class TankDrive extends LinearOpMode {
+
+    // Define motor variables
+    private DcMotor leftFront = null;
+    private DcMotor leftBack = null; // Note: Physically acting as a right motor (RM)
+    private DcMotor rightFront = null;
+    private DcMotor rightBack = null;
+
+    @Override
+    public void runOpMode() {
+
+        // Initialize the hardware variables using your configuration names
+        leftFront  = hardwareMap.get(DcMotor.class, "LM");
+        leftBack   = hardwareMap.get(DcMotor.class, "RM");
+        rightFront = hardwareMap.get(DcMotor.class, "Shooter");
+        rightBack  = hardwareMap.get(DcMotor.class, "Intake");
+
+        // Motor directions set from your working forward-drive configuration
+        leftFront.setDirection(DcMotor.Direction.FORWARD);
+        leftBack.setDirection(DcMotor.Direction.REVERSE);  
+        rightFront.setDirection(DcMotor.Direction.REVERSE);
+        rightBack.setDirection(DcMotor.Direction.REVERSE);
+
+        // Set zero power behavior to BRAKE so the robot stops immediately
+        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // Wait for the game to start (driver presses PLAY)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+        waitForStart();
+
+        // Run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+
+            // 1. Get raw inputs from the LEFT joystick
+            double drive = -gamepad1.left_stick_y; 
+            double turn  =  gamepad1.left_stick_x; 
+
+            // 2. Apply a 10% deadband to stop stick drift / ghost movements
+            if (Math.abs(drive) < 0.10) {
+                drive = 0.0;
+            }
+            if (Math.abs(turn) < 0.10) {
+                turn = 0.0;
+            }
+
+            // 3. Arcade Drive calculation accounting for the swapped right motor (RM)
+            // leftFront gets standard left power.
+            // leftBack (RM), rightFront, and rightBack all get right-side power signs.
+            double leftFrontPower = drive + turn;
+            double rightPower     = drive - turn; // Applied to all physical right-side motors
+
+            // 4. Multiply by 0.5 to limit the maximum power to 50%
+            leftFrontPower = leftFrontPower * 0.5;
+            double limitedRightPower = rightPower * 0.5;
+
+            // 5. Send the calculated power to your motors
+            leftFront.setPower(leftFrontPower);
+            leftBack.setPower(limitedRightPower);   // Swapped to match right side math
+            rightFront.setPower(limitedRightPower);
+            rightBack.setPower(limitedRightPower);
+
+            // 6. Show the wheel power values on the driver station
+            telemetry.addData("Drive Input", drive);
+            telemetry.addData("Turn Input", turn);
+            telemetry.addData("LF Power", leftFrontPower);
+            telemetry.addData("Right Side Power", limitedRightPower);
+            telemetry.update();
+        }
+    }
+}
