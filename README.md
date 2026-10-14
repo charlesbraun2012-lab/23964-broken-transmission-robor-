@@ -12,3 +12,5 @@ Motor ports:
 2) Shooter motor (Shooter)
 3) Intake motor (Intake)
 
+Gemini can fix code bugs just copy and paste "Final Code (indexer servo only)" and ask it to fix. Additionally in .gitignore there is the gemini convo that made the code 
+
