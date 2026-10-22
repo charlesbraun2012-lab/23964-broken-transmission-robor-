@@ -1,0 +1,112 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.CRServo; // MUST be CRServo, remove regular Servo import
+
+@TeleOp(name = "Arcade Drive with Shooter, Intake, and Continuous Indexer", group = "Linear Opmode")
+public class TankDrive extends LinearOpMode {
+
+    // Define motor variables
+    private DcMotor leftFront = null;
+    private DcMotor leftBack = null; // Note: Physically acting as a right motor (RM)
+    private DcMotor rightFront = null; // This is your Shooter motor
+    private DcMotor rightBack = null; // This is your Intake motor
+
+    // Explicitly declare this as a CRServo
+    private CRServo myServo = null; 
+
+    // Variables to handle the B button toggle state
+    private boolean isServoRunning = false;
+    private boolean lastButtonBState = false;
+
+    @Override
+    public void runOpMode() {
+
+        // Initialize the hardware variables using your configuration names
+        leftFront  = hardwareMap.get(DcMotor.class, "LM");
+        leftBack   = hardwareMap.get(DcMotor.class, "RM");
+        rightFront = hardwareMap.get(DcMotor.class, "Shooter");
+        rightBack  = hardwareMap.get(DcMotor.class, "Intake");
+
+        // Initialize explicitly as a CRServo on Port 0 named "Servo"
+        myServo    = hardwareMap.get(CRServo.class, "Servo"); 
+
+        // Motor directions set from your working forward-drive configuration
+        leftFront.setDirection(DcMotor.Direction.FORWARD);
+        leftBack.setDirection(DcMotor.Direction.REVERSE);  
+        rightFront.setDirection(DcMotor.Direction.REVERSE);
+        rightBack.setDirection(DcMotor.Direction.REVERSE);
+
+        // Set zero power behavior to BRAKE so the robot stops immediately
+        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // Wait for the game to start (driver presses PLAY)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+        waitForStart();
+
+        // Run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+
+            // 1. Get raw inputs from the LEFT joystick for driving
+            double drive = -gamepad1.left_stick_y; 
+            double turn  =  gamepad1.left_stick_x; 
+
+            // 2. Apply a 10% deadband to stop stick drift / ghost movements
+            if (Math.abs(drive) < 0.10) {
+                drive = 0.0;
+            }
+            if (Math.abs(turn) < 0.10) {
+                turn = 0.0;
+            }
+
+            // 3. Arcade Drive calculation accounting for the swapped right motor (RM)
+            double leftFrontPower = (drive + turn) * 0.7;
+            double limitedRightPower = (drive - turn) * 0.7;
+
+            // 4. Send movement power to the remaining pure drivetrain motors
+            leftFront.setPower(leftFrontPower);
+            leftBack.setPower(limitedRightPower);   
+
+            // 5. Shooter Control via Right Trigger (RT) - Reversed Direction
+            if (gamepad1.right_trigger > 0.10) {
+                rightFront.setPower(-0.65); 
+            } else {
+                rightFront.setPower(0.0);
+            }
+
+            // 6. Intake Control via Left Trigger (LT) - Reversed Direction
+            if (gamepad1.left_trigger > 0.10) {
+                rightBack.setPower(-1.0); 
+            } else {
+                rightBack.setPower(0.0);
+            }
+
+            // 7. Toggle Continuous Rotation Servo via Button B (Edge Detection)
+            if (gamepad1.b && !lastButtonBState) {
+                isServoRunning = !isServoRunning; 
+            }
+            lastButtonBState = gamepad1.b; 
+
+            // Set the continuous rotation power based on the toggle state
+            if (isServoRunning) {
+                myServo.setPower(-1.0); // Continues to spin full speed counter     clockwise
+            } else {
+                myServo.setPower(0.0); // Complete stop
+            }
+
+            // 8. Show values on driver station
+            telemetry.addData("Drive Input", drive);
+            telemetry.addData("Turn Input", turn);
+            telemetry.addData("Shooter Power", rightFront.getPower());
+            telemetry.addData("Intake Power", rightBack.getPower());
+            telemetry.addData("Indexer Running", isServoRunning);
+            telemetry.update();
+        }
+    }
+}
